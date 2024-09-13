@@ -22,7 +22,8 @@ type HTTPServer struct {
 }
 
 type Telegram struct {
-	Token string `yaml:"token"`
+	Token     string `yaml:"token"`
+	TgBotHost string `yaml:"tgBotHost"`
 }
 
 func MustLoad() *Config {
@@ -31,7 +32,6 @@ func MustLoad() *Config {
 		log.Fatal("CONFIG_PATH is not set")
 	}
 
-	// check if file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		log.Fatalf("config file does not exist: %s", configPath)
 	}
