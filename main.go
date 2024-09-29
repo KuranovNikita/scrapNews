@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -10,9 +11,13 @@ import (
 	"scrapNews/internal/client"
 	"scrapNews/internal/config"
 	"scrapNews/internal/models"
+	"scrapNews/storage"
+	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -35,6 +40,145 @@ func main() {
 	log.Info("start url shortener", slog.String("env", cfg.Env))
 	log.Debug("debug messages are enabled")
 	client := client.New(cfg.Telegram.TgBotHost, cfg.Telegram.Token, log)
+
+	// _, err := sql.Open("postgres", cfg.DB.DBURL)
+	// if err != nil {
+	// 	log.Error("Can't connect to database:", err)
+	// } else {
+	// 	log.Info("PG works!!!!")
+	// }
+
+	// TEST queries
+	storageEx, err := storage.New("postgres", cfg.DB.DBURL)
+	if err != nil {
+		log.Error("Can't connect to database:", err)
+	} else {
+		log.Info("PG works!!!!")
+	}
+	userParams := storage.CreateUserParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		Name:      "TestName",
+		Type:      models.Telegram,
+	}
+
+	userNew, err := storageEx.SaveUser(userParams)
+	if errors.Is(err, storage.ErrEmptyUser) {
+		log.Info("User already make")
+	} else if err != nil {
+		log.Error("Can't make :", err)
+	} else {
+		log.Info("SaveUser works!!!!")
+		telegramUserParams := storage.CreateTelegramUserParams{
+			ID:        uuid.New(),
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+			Name:      "TestName",
+			ChatID:    "123456",
+			UserID:    userNew.ID,
+			Active:    true,
+		}
+		_, err := storageEx.SaveTelegramUser(telegramUserParams)
+		if errors.Is(err, storage.ErrEmptyUser) {
+			log.Info("User already make")
+		} else if err != nil {
+			log.Error("Can't make SaveTelegramUser:", err)
+		} else {
+			log.Info("SaveUserTelegram works!!!!")
+		}
+	}
+
+	telUser, err := storageEx.GetTelegramUserByChatId("123456")
+	if err != nil {
+		log.Error("Can't make :", err)
+	}
+	fmt.Println("!!!!!!!!!!NaME IS %s", telUser.Name)
+
+	UpdateTelegramUserActiveParams := storage.UpdateTelegramUserActiveParams{Active: false, ChatID: "123456"}
+	err = storageEx.UpdateTelegramUserActive(UpdateTelegramUserActiveParams)
+	if err != nil {
+		log.Error("Can't make UpdateTelegramUserActive:", err)
+	} else {
+		log.Info("UpdateTelegramUserActive WORK")
+	}
+
+	createSiteParseParams := storage.CreateSiteParseParams{
+		ID:            uuid.New(),
+		CreatedAt:     time.Now().UTC(),
+		UpdatedAt:     time.Now().UTC(),
+		Name:          "SiteParse",
+		UrlSite:       "http:site",
+		Type:          "type",
+		LastFetchedAt: time.Now().UTC(),
+	}
+
+	SiteParse, err := storageEx.CreateSiteParse(createSiteParseParams)
+	if err != nil {
+		log.Error("Can't make CreateSiteParse:", err)
+	} else {
+		log.Info("CreateSiteParse WORK")
+	}
+
+	_, err = storageEx.GetAllSiteParses()
+	if err != nil {
+		log.Error("Can't make GetAllSiteParses:", err)
+	} else {
+		log.Info("GetAllSiteParses WORK")
+	}
+
+	_, err = storageEx.GetSiteParseById(SiteParse.ID)
+	if err != nil {
+		log.Error("Can't make GetSiteParseById:", err)
+	} else {
+		log.Info("GetSiteParseById WORK")
+	}
+
+	_, err = storageEx.GetSiteParseByName(SiteParse.Name)
+	if err != nil {
+		log.Error("Can't make GetSiteParseByName:", err)
+	} else {
+		log.Info("GetSiteParseByName WORK")
+	}
+
+	createSiteParseParamsFollows := storage.CreateSiteParseParamsFollows{
+		ID:          uuid.New(),
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+		UserID:      userNew.ID,
+		SiteParseID: SiteParse.ID,
+		Active:      false,
+	}
+	// fmt.Printf("%v", createSiteParseParamsFollows)
+	SiteParseFollows, err := storageEx.CreateSiteParseFollows(createSiteParseParamsFollows)
+	if err != nil {
+		log.Error("Can't make CreateSiteParseFollows:", err)
+	} else {
+		log.Info("CreateSiteParseFollows WORK")
+	}
+
+	_, err = storageEx.GetSiteParseFollowsByUserID(SiteParseFollows.UserID)
+	if err != nil {
+		log.Error("Can't make GetSiteParseFollowsByUserID:", err)
+	} else {
+		log.Info("GetSiteParseFollowsByUserID WORK")
+	}
+
+	updateSiteParseActiveParamsFollows := storage.UpdateSiteParseActiveParamsFollows{
+		Active:      true,
+		UpdatedAt:   time.Now().UTC(),
+		UserID:      userNew.ID,
+		SiteParseID: SiteParse.ID,
+	}
+	err = storageEx.UpdateSiteParseFollowsActive(updateSiteParseActiveParamsFollows)
+	if err != nil {
+		log.Error("Can't make UpdateSiteParseFollowsActive:", err)
+	} else {
+		log.Info("UpdateSiteParseFollowsActive WORK")
+	}
+
+	// TEST queries  END
+
 	// messenger := models.Messenger{Name: "telegram"}
 
 	// sendingMessage := models.SendingMessage{

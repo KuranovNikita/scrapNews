@@ -13,6 +13,7 @@ type Config struct {
 	Env        string `yaml:"env" env-default:"local"`
 	HTTPServer `yaml:"http_server"`
 	Telegram   `yaml:"telegram"`
+	DB         `yaml:"db"`
 }
 
 type HTTPServer struct {
@@ -24,6 +25,10 @@ type HTTPServer struct {
 type Telegram struct {
 	Token     string `yaml:"token"`
 	TgBotHost string `yaml:"tgBotHost"`
+}
+
+type DB struct {
+	DBURL string `yaml:"db_url"`
 }
 
 func MustLoad() *Config {
